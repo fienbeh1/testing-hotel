@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reporte Ropería</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; color: #333; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+        .fecha { text-align: center; color: #7f8c8d; margin-bottom: 30px; }
+        
+        .resumen-box { text-align: center; background: #ecf0f1; padding: 20px; border-radius: 10px; margin-bottom: 30px; }
+        .gran-total { font-size: 3rem; font-weight: bold; color: #e67e22; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+        th { background: #34495e; color: white; padding: 10px; text-align: left; }
+        td { border-bottom: 1px solid #ddd; padding: 10px; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <button class="no-print" onclick="window.print()" style="padding:10px 20px; font-size:1.2rem; cursor:pointer;">🖨️ IMPRIMIR REPORTE</button>
+    
+    <h1>{{ titulo }}</h1>
+    <div class="fecha">Generado automáticamente por RoperíaFlow</div>
+
+    <div class="resumen-box">
+        TOTAL DE PIEZAS MOVIDAS
+        <div class="gran-total">{{ total_piezas }}</div>
+    </div>
+
+    <h3>📉 CONSUMO POR INSUMO</h3>
+    <table>
+        <thead><tr><th>Insumo</th><th>Cantidad Total</th></tr></thead>
+        <tbody>
+            {% for row in stats %}
+            <tr>
+                <td>{{ row.item }}</td>
+                <td><strong>{{ row.total }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if tipo == 'hoy' %}
+    <h3>🏢 DETALLE POR PISO (HOY)</h3>
+    <table>
+        <thead><tr><th>Piso</th><th>Insumo</th><th>Cantidad</th></tr></thead>
+        <tbody>
+            {% for row in detalle %}
+            <tr>
+                <td>Piso {{ row.piso }}</td>
+                <td>{{ row.item }}</td>
+                <td>{{ row.total }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <h3>🏆 PISOS CON MÁS CONSUMO (SEMANAL)</h3>
+    <table>
+        <thead><tr><th>Piso</th><th>Total Piezas Solicitadas</th></tr></thead>
+        <tbody>
+            {% for row in detalle %}
+            <tr>
+                <td>Piso {{ row.piso }}</td>
+                <td><strong>{{ row.total }}</strong></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+</body>
+</html>

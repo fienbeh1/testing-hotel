@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ropería</title>
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, sans-serif; background: #f4f6f8; padding-bottom: 120px; margin: 0; }
+        .header { background: #2c3e50; color: white; padding: 12px; text-align: center; position: sticky; top: 0; z-index: 10; font-weight: bold; }
+        .container { padding: 10px; max-width: 600px; margin: 0 auto; }
+
+        .grid-pisos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+        .btn-piso { padding: 15px; font-size: 1.2rem; background: white; border: 1px solid #ccc; border-radius: 6px; font-weight: bold; color: #333; }
+        .btn-piso.active { background: #e67e22; color: white; border-color: #d35400; transform: scale(1.02); }
+
+        .stock-panel { background: white; padding: 12px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: none; }
+        .stock-info { display: flex; justify-content: space-between; font-size: 0.85rem; color: #666; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        .stock-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; text-align: center; }
+        .stock-box { background: #f8f9fa; padding: 4px; border-radius: 4px; font-size: 0.75rem; border: 1px solid #eee; }
+        .stock-val { font-weight: bold; color: #2980b9; font-size: 1rem; display: block; }
+        .btn-vacio { width: 100%; padding: 12px; background: #c0392b; color: white; border: none; border-radius: 5px; margin-top: 10px; font-weight: bold; } 
+
+        .grid-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; display: none; }
+        .btn-item { padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: bold; min-height: 70px; font-size: 1rem; position: relative; }
+        .btn-item.agotado { background: #bdc3c7; color: #7f8c8d; pointer-events: none; }
+        .btn-item.proceso { background: #f39c12; color: white; }
+
+        /* HISTORIAL */
+        .historial-box { margin-top: 20px; display: none; padding-bottom: 50px; }
+        .hist-title { font-size: 0.9rem; color: #7f8c8d; margin-bottom: 5px; font-weight: bold; text-transform: uppercase; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        .hist-list { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); min-height: 50px; }
+        .hist-row { padding: 10px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }
+        .hist-time { color: #999; width: 100px; font-size: 0.75rem; }
+        .hist-desc { flex-grow: 1; font-weight: 500; text-align:right; }
+        
+        .status-PENDIENTE { color: #e67e22; }
+        .status-SURTIDO { color: #27ae60; font-weight: bold; }
+        .status-ALERT { color: #c0392b; font-weight: bold; }
+
+        .carrito-section { margin-top: 20px; background: white; padding: 15px; border-radius: 8px; display: none; }
+        .carrito-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .btn-enviar { width: 100%; padding: 15px; background: #2980b9; color: white; border: none; border-radius: 6px; font-size: 1.1rem; margin-top: 10px; font-weight: bold; }
+        
+        .kb-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:99; }
+        .kb-panel { position:fixed; bottom:-100%; left:0; width:100%; background:#f0f2f5; z-index:100; padding:15px; transition:bottom 0.25s; border-radius: 15px 15px 0 0; box-shadow: 0 -5px 15px rgba(0,0,0,0.1); }
+        .kb-panel.show { bottom:0; }
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .btn-num { padding: 15px; font-size: 1.6rem; background: white; border:none; border-radius:5px; box-shadow: 0 2px 0 #ccc; }
+    </style>
+</head>
+<body>
+<div class="header" id="headerTitle">SELECCIONA PISO</div>
+<div class="container">
+    <div class="grid-pisos" id="divPisos"></div>
+
+    <div class="stock-panel" id="stockPanel">
+        <div class="stock-info">
+            <span>📦 STOCK (Estimado)</span>
+            <span id="lastUpdate">--:--</span>
+        </div>
+        <div class="stock-grid" id="stockGrid"></div>
+        <button class="btn-vacio" onclick="reportarVacio()">🚨 REPORTAR ROPERÍA VACÍA</button>
+    </div>
+
+    <div class="grid-items" id="divItems">
+        {% for item, estado in inventario.items() %}
+        <button class="btn-item {% if estado == 0 %}agotado{% elif estado == 2 %}proceso{% endif %}" onclick="openKb('{{ item }}')">
+            {{ item }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <div class="carrito-section" id="carritoSection">
+        <div style="font-weight:bold; margin-bottom:10px;">PEDIDO ACTUAL:</div>
+        <div id="listaCarrito"></div>
+        <button class="btn-enviar" onclick="enviar()">ENVIAR AHORA</button>
+    </div>
+
+    <div class="historial-box" id="histSection">
+        <div class="hist-title">ACTIVIDAD RECIENTE</div>
+        <div class="hist-list" id="histList">
+            <div style="padding:10px; text-align:center; color:#999;">Selecciona un piso para ver...</div>
+        </div>
+    </div>
+</div>
+
+<div class="kb-overlay" id="kbOverlay" onclick="closeKb()"></div>
+<div class="kb-panel" id="kbPanel">
+    <div style="text-align:center; font-size:2.5rem; background:white; margin-bottom:15px; border-radius:8px; padding:10px;" id="kbDisplay">0</div>
+    <div class="numpad">
+        <button class="btn-num" onclick="add(1)">1</button><button class="btn-num" onclick="add(2)">2</button><button class="btn-num" onclick="add(3)">3</button>
+        <button class="btn-num" onclick="add(4)">4</button><button class="btn-num" onclick="add(5)">5</button><button class="btn-num" onclick="add(6)">6</button>
+        <button class="btn-num" onclick="add(7)">7</button><button class="btn-num" onclick="add(8)">8</button><button class="btn-num" onclick="add(9)">9</button>
+        <button class="btn-num" style="background:#e74c3c; color:white;" onclick="clean()">C</button>
+        <button class="btn-num" onclick="add(0)">0</button>
+        <button class="btn-num" style="background:#27ae60; color:white;" onclick="confirmItem()">OK</button>
+    </div>
+</div>
+
+<script>
+    let piso=null, item=null, qty="", carrito=[];
+    const divPisos = document.getElementById('divPisos');
+    
+    // Crear botones pisos
+    for(let i=11; i>=3; i--){
+        let btn = document.createElement('button'); btn.className='btn-piso'; btn.innerText=i;
+        btn.onclick = () => loadPiso(i, btn);
+        divPisos.appendChild(btn);
+    }
+
+    async function loadPiso(n, btn){
+        piso = n;
+        document.querySelectorAll('.btn-piso').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+        document.getElementById('headerTitle').innerText = "PISO " + n;
+        document.getElementById('divItems').style.display = 'grid';
+        document.getElementById('stockPanel').style.display = 'block';
+        
+        // MOSTRAR SECCIÓN HISTORIAL
+        const histSec = document.getElementById('histSection');
+        histSec.style.display = 'block';
+        
+        try {
+            let res = await fetch(`/piso/${n}/datos`);
+            let data = await res.json();
+            
+            // Stock
+            document.getElementById('lastUpdate').innerText = data.ultima_recarga;
+            let sg = document.getElementById('stockGrid'); sg.innerHTML = "";
+            data.stock.forEach(s => {
+                sg.innerHTML += `<div class="stock-box"><span class="stock-val">${s.cantidad}</span> ${s.item.split(' ')[0]}</div>`;
+            });
+
+            // Historial
+            let hl = document.getElementById('histList'); hl.innerHTML = "";
+            if(data.historial.length === 0) {
+                hl.innerHTML = '<div style="padding:15px; text-align:center; color:#ccc;">Sin actividad reciente.</div>';
+            } else {
+                data.historial.forEach(h => {
+                    let icon = "⚪"; let txt = h.item; let css = "";
+                    if(h.tipo === 'PEDIDO') {
+                        if(h.estado === 'PENDIENTE') { icon="⏳"; css="status-PENDIENTE"; txt=`Pidió ${h.cantidad} ${h.item}`; }
+                        if(h.estado === 'SURTIDO')   { icon="✅"; css="status-SURTIDO"; txt=`Surtido: ${h.cantidad} ${h.item}`; }
+                    }
+                    if(h.tipo === 'SURTIDO') { icon="🚚"; css="status-SURTIDO"; txt="Relleno Auto"; }
+                    if(h.tipo === 'VACIO')   { icon="🚨"; css="status-ALERT"; txt="Reportó Vacío"; }
+
+                    hl.innerHTML += `
+                        <div class="hist-row">
+                            <span class="hist-time">${h.fecha_fmt}</span>
+                            <span class="hist-desc ${css}">${icon} ${txt}</span>
+                        </div>`;
+                });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function reportarVacio() {
+        if(!piso) return;
+        if(!confirm("⚠️ ¿ROPERÍA VACÍA?\n\nSe pondrá el inventario en 0.")) return;
+        try {
+            let res = await fetch('/reportar_vacio', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({piso: piso}) });
+            if(res.ok) { alert("Reporte enviado."); loadPiso(piso, document.querySelector('.btn-piso.active')); }
+        } catch(e) { alert("Error"); }
+    }
+
+    function openKb(it){ item=it; qty=""; document.getElementById('kbDisplay').innerText="0"; document.getElementById('kbOverlay').style.display='block'; setTimeout(()=>document.getElementById('kbPanel').classList.add('show'),10); }
+    function closeKb(){ document.getElementById('kbPanel').classList.remove('show'); setTimeout(()=>document.getElementById('kbOverlay').style.display='none',200); }
+    function add(n){ if(qty.length<2) qty+=n; document.getElementById('kbDisplay').innerText=qty; }
+    function clean(){ qty=""; document.getElementById('kbDisplay').innerText="0"; }
+    function confirmItem(){ if(parseInt(qty)>0){ carrito.push({item:item, cantidad:parseInt(qty)}); renderCart(); } closeKb(); }
+    function renderCart(){ 
+        let lc=document.getElementById('listaCarrito'); lc.innerHTML="";
+        if(carrito.length>0) document.getElementById('carritoSection').style.display='block';
+        else document.getElementById('carritoSection').style.display='none';
+        carrito.forEach((p,i)=> lc.innerHTML+=`<div class="carrito-row"><span><b>${p.cantidad}</b> ${p.item}</span><button onclick="carrito.splice(${i},1);renderCart()" style="background:#e74c3c;color:white;border:none;border-radius:4px;">X</button></div>`);
+    }
+    async function enviar(){
+        if(carrito.length===0) return;
+        let res = await fetch('/pedir_varios', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({piso:piso, items:carrito})});
+        if(res.ok) { alert("✅ ENVIADO"); carrito=[]; renderCart(); loadPiso(piso, document.querySelector('.btn-piso.active')); }
+    }
+</script>
+</body>
+</html>

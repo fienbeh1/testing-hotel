@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Lavandería</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; padding: 10px; background: #2c3e50; color: white; margin: 0; }
+        .card { background: #34495e; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 10px; }
+        .btn-reporte { padding: 10px 15px; background: #2980b9; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 5px; display: inline-block; margin-bottom: 5px; }
+        .btn-reporte:hover { background: #3498db; }
+        
+        .surtir-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .btn-surtir { padding: 15px; background: #27ae60; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .btn-surtir-all { grid-column: span 3; background: #8e44ad; padding: 15px; font-weight: bold; margin-top: 5px; cursor: pointer; border: none; color: white; border-radius: 5px; }
+        
+        table { width: 100%; border-collapse: collapse; } td { padding: 8px; border-bottom: 1px solid #555; }
+        .num { font-size: 1.2rem; font-weight: bold; color: #f1c40f; text-align: right; }
+        .piso-block { background: #222; margin-bottom: 10px; padding: 10px; border-radius: 5px; border-left: 5px solid #3498db; }
+        .piso-item { display: flex; justify-content: space-between; font-size: 0.9rem; color: #ecf0f1; padding: 2px 0; border-bottom: 1px dotted #444; }
+        .control-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #555; }
+        .btn-state { padding: 5px 12px; background: #222; color: #ccc; border: 1px solid #555; margin-left: 2px; cursor: pointer; }
+        .active-1 { background: #2ecc71; color: white; } .active-2 { background: #f1c40f; color: black; } .active-0 { background: #e74c3c; color: white; }
+    </style>
+</head>
+<body>
+    <div style="text-align:center; margin-bottom:15px;">
+        <a href="/reporte/hoy" target="_blank" class="btn-reporte">📄 DIARIO</a>
+        <a href="/reporte/semana" target="_blank" class="btn-reporte">📊 SEMANAL</a>
+        <a href="/reporte/mes" target="_blank" class="btn-reporte">📅 MENSUAL</a>
+    </div>
+
+    <div class="card">
+        <h3>🚚 SURTIDO RÁPIDO</h3>
+        <form action="/admin/surtir_stock" method="post" class="surtir-grid">
+            {% for i in range(11, 2, -1) %}
+            <button name="piso" value="{{ i }}" class="btn-surtir">PISO {{ i }}</button>
+            {% endfor %}
+            <button name="piso" value="TODOS" class="btn-surtir-all">✨ SURTIR TODO</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>🏢 DETALLE POR PISO</h3>
+        {% if pisos_pendientes %}
+            {% for piso, items in pisos_pendientes.items() %}
+            <div class="piso-block">
+                <div style="font-weight:bold; color:#3498db; margin-bottom:5px;">PISO {{ piso }}</div>
+                {% for it in items %}
+                <div class="piso-item">
+                    <span>{{ it.item }}</span>
+                    <span style="color:#f1c40f; font-weight:bold;">x{{ it.total }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        {% else %} <p style="text-align:center; color:#95a5a6;">Sin pendientes.</p> {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>🔥 TOTALES GENERALES</h3>
+        {% if totales %}
+            <table>
+                {% for row in totales %}
+                <tr><td>{{ row.item }}</td><td class="num">{{ row.total }}</td></tr>
+                {% endfor %}
+            </table>
+            <form action="/admin/limpiar" method="post" style="margin-top:10px;">
+                <button style="width:100%; padding:15px; background:#e67e22; border:none; color:white; font-weight:bold; cursor:pointer;">✅ LIMPIAR TODO</button>
+            </form>
+        {% else %} <p style="text-align:center; color:#95a5a6;">Nada.</p> {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>🚦 CONTROL</h3>
+        {% for row in inventario %}
+        <div class="control-row">
+            <span>{{ row.item }}</span>
+            <form action="/admin/set_status" method="post">
+                <input type="hidden" name="item" value="{{ row.item }}">
+                <button name="estado" value="1" class="btn-state {% if row.estado_manual==1 %}active-1{% endif %}">HAY</button>
+                <button name="estado" value="2" class="btn-state {% if row.estado_manual==2 %}active-2{% endif %}">⏳</button>
+                <button name="estado" value="0" class="btn-state {% if row.estado_manual==0 %}active-0{% endif %}">NO</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>

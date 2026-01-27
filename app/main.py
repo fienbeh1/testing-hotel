@@ -6,10 +6,20 @@ from typing import List
 import sqlite3
 from datetime import datetime, timedelta
 import pandas as pd
+import os
+from pathlib import Path
 
+
+# This looks for a variable called DATABASE_URL, 
+# and defaults to local SQLite if it's not found.
+DB_PATH = os.getenv("DATABASE_URL", "roperia.db")
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-DB_NAME = "roperia.db"
+db_dir = os.path.dirname(DB_PATH)
+if db_dir:
+    os.makedirs(db_dir, exist_ok=True)
+
+DB_NAME = DB_PATH
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)

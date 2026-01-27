@@ -2,16 +2,14 @@ services:
   - type: web
     name: hotel-roperia
     env: docker
-    plan: free # Change to 'starter' if you add a Disk later
+    plan: free
     region: oregon
     envVars:
+      - key: DATABASE_URL
+        value: /code/data/roperia.db  # This tells the code where to save
       - key: PORT
         value: 80
-    # This maps the branch we just made
-    branch: deploy-render
-    # If you stay on 'Free', this disk section won't work. 
-    # Without a disk, your DB resets every restart.
     disk:
-      name: sqlite-data
-      mountPath: /code/data
+      name: sqlite-storage
+      mountPath: /code/data          # This folder survives restarts
       sizeGB: 1

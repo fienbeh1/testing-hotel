@@ -1,51 +1,99 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Admin Lavandería</title>
+    <title>Panel Maestro - Lavandería</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; padding: 10px; background: #2c3e50; color: white; margin: 0; }
+        body { font-family: sans-serif; padding: 10px; background: #2c3e50; color: white; margin: 0; padding-bottom: 50px; }
         .card { background: #34495e; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 10px; }
-        .btn-reporte { padding: 10px 15px; background: #2980b9; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 5px; display: inline-block; margin-bottom: 5px; }
+        h3 { margin-top: 0; border-bottom: 1px solid #555; padding-bottom: 10px; text-transform: uppercase; font-size: 1rem; color: #ecf0f1; }
+        
+        /* BOTONES DE REPORTE */
+        .btn-reporte { padding: 10px 15px; background: #2980b9; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 5px; display: inline-block; margin-bottom: 5px; font-size: 0.8rem; }
         .btn-reporte:hover { background: #3498db; }
         
+        /* GRID DE PISOS */
         .surtir-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-        .btn-surtir { padding: 15px; background: #27ae60; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .btn-surtir-all { grid-column: span 3; background: #8e44ad; padding: 15px; font-weight: bold; margin-top: 5px; cursor: pointer; border: none; color: white; border-radius: 5px; }
-        
-        table { width: 100%; border-collapse: collapse; } td { padding: 8px; border-bottom: 1px solid #555; }
+        .btn-piso-admin { padding: 15px; background: #27ae60; color: white; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 1.1rem; }
+        .btn-surtir-all { grid-column: span 3; background: #8e44ad; padding: 15px; font-weight: bold; margin-top: 5px; cursor: pointer; border: none; color: white; border-radius: 5px; font-size: 1rem; }
+
+        /* TABLA TOTALES */
+        table { width: 100%; border-collapse: collapse; } 
+        td { padding: 8px; border-bottom: 1px solid #555; }
         .num { font-size: 1.2rem; font-weight: bold; color: #f1c40f; text-align: right; }
+        
+        /* DETALLE PISOS */
         .piso-block { background: #222; margin-bottom: 10px; padding: 10px; border-radius: 5px; border-left: 5px solid #3498db; }
-        .piso-item { display: flex; justify-content: space-between; font-size: 0.9rem; color: #ecf0f1; padding: 2px 0; border-bottom: 1px dotted #444; }
+        .piso-item { display: flex; justify-content: space-between; font-size: 0.9rem; color: #ecf0f1; padding: 4px 0; border-bottom: 1px dotted #444; }
+
+        /* CONTROL DE ESTADOS (SEMÁFORO) */
         .control-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #555; }
-        .btn-state { padding: 5px 12px; background: #222; color: #ccc; border: 1px solid #555; margin-left: 2px; cursor: pointer; }
-        .active-1 { background: #2ecc71; color: white; } .active-2 { background: #f1c40f; color: black; } .active-0 { background: #e74c3c; color: white; }
+        .btn-state { padding: 8px 12px; background: #222; color: #ccc; border: 1px solid #555; margin-left: 2px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        .active-1 { background: #2ecc71 !important; color: white; } 
+        .active-2 { background: #f1c40f !important; color: black; } 
+        .active-0 { background: #e74c3c !important; color: white; }
+
+        /* MODAL DE SURTIDO */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: #ecf0f1; color: #333; width: 95%; max-width: 500px; border-radius: 8px; padding: 15px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { font-size: 1.3rem; font-weight: bold; text-align: center; margin-bottom: 15px; color: #2c3e50; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        .btn-action-large { width: 100%; padding: 15px; margin-bottom: 10px; font-size: 1.1rem; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-quick { background: #27ae60; color: white; }
+        .btn-manual { background: #e67e22; color: white; }
+        .btn-cancel { background: #c0392b; color: white; }
+
+        /* MANUAL & KEYPAD */
+        .manual-panel { display: none; }
+        .grid-items-manual { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px; }
+        .btn-item-manual { padding: 10px; background: #34495e; color: white; border: none; border-radius: 6px; min-height: 60px; font-weight: bold; }
+        .kb-container { background: #ddd; padding: 10px; border-radius: 8px; margin-top: 10px; }
+        .kb-display { background: white; padding: 15px; text-align: center; font-size: 1.5rem; margin-bottom: 10px; border-radius: 4px; font-weight: bold; color: #2c3e50; }
+        .kb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        .btn-num { padding: 18px; background: white; border: none; font-size: 1.3rem; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 0 #bbb; }
+        .btn-num:active { background: #ccc; transform: translateY(2px); }
+        
+        /* ALERTAS */
+        .alert-banner { position: fixed; top: 0; left: 0; width: 100%; background: #c0392b; color: white; padding: 15px; font-size: 1.2rem; text-align: center; display: none; z-index: 2000; animation: flash 1s infinite; font-weight: bold; }
+        @keyframes flash { 0% {opacity: 1;} 50% {opacity: 0.6;} 100% {opacity: 1;} }
     </style>
 </head>
 <body>
-    <div style="text-align:center; margin-bottom:15px;">
-        <a href="/reporte/hoy" target="_blank" class="btn-reporte">📄 DIARIO</a>
-        <a href="/reporte/semana" target="_blank" class="btn-reporte">📊 SEMANAL</a>
-        <a href="/reporte/mes" target="_blank" class="btn-reporte">📅 MENSUAL</a>
+    <audio id="alertSound" loop>
+        <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" type="audio/ogg">
+    </audio>
+
+    <div id="alertBanner" class="alert-banner" onclick="stopAlarm()">
+        🔔 ¡NUEVO PEDIDO! TOCA PARA SILENCIAR
+    </div>
+
+    <div style="text-align:center; margin-bottom:15px; padding-top: 10px;">
+        <button onclick="activarAudio()" style="background:#f1c40f; border:none; padding:10px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">🔊 ACTIVAR SONIDO</button>
+        <div style="margin-top:15px;">
+            <a href="/reporte/hoy" target="_blank" class="btn-reporte">📄 DIARIO</a>
+            <a href="/reporte/semana" target="_blank" class="btn-reporte">📊 SEMANAL</a>
+            <a href="/reporte/mes" target="_blank" class="btn-reporte">📅 MENSUAL</a>
+        </div>
     </div>
 
     <div class="card">
-        <h3>🚚 SURTIDO RÁPIDO</h3>
-        <form action="/admin/surtir_stock" method="post" class="surtir-grid">
+        <h3>🚚 ACCIONES DE SURTIDO</h3>
+        <div class="surtir-grid">
             {% for i in range(11, 2, -1) %}
-            <button name="piso" value="{{ i }}" class="btn-surtir">PISO {{ i }}</button>
+            <button onclick="openModal({{ i }})" class="btn-piso-admin">PISO {{ i }}</button>
             {% endfor %}
-            <button name="piso" value="TODOS" class="btn-surtir-all">✨ SURTIR TODO</button>
-        </form>
+            <form action="/admin/surtir_stock" method="post" style="grid-column: span 3;">
+                <button name="piso" value="TODOS" class="btn-surtir-all">✨ SURTIR TODO EL HOTEL (A 5)</button>
+            </form>
+        </div>
     </div>
 
     <div class="card">
-        <h3>🏢 DETALLE POR PISO</h3>
+        <h3>🏢 PENDIENTES POR PISO</h3>
         {% if pisos_pendientes %}
             {% for piso, items in pisos_pendientes.items() %}
             <div class="piso-block">
-                <div style="font-weight:bold; color:#3498db; margin-bottom:5px;">PISO {{ piso }}</div>
+                <div style="font-weight:bold; color:#3498db; margin-bottom:5px; border-bottom: 1px solid #333;">PISO {{ piso }}</div>
                 {% for it in items %}
                 <div class="piso-item">
                     <span>{{ it.item }}</span>
@@ -54,25 +102,32 @@
                 {% endfor %}
             </div>
             {% endfor %}
-        {% else %} <p style="text-align:center; color:#95a5a6;">Sin pendientes.</p> {% endif %}
+        {% else %} 
+            <p style="text-align:center; color:#95a5a6;">Todo surtido. Sin pendientes.</p> 
+        {% endif %}
     </div>
 
     <div class="card">
-        <h3>🔥 TOTALES GENERALES</h3>
+        <h3>🔥 TOTALES GENERALES (PARA CARRO)</h3>
         {% if totales %}
             <table>
                 {% for row in totales %}
-                <tr><td>{{ row.item }}</td><td class="num">{{ row.total }}</td></tr>
+                <tr>
+                    <td>{{ row.item }}</td>
+                    <td class="num">{{ row.total }}</td>
+                </tr>
                 {% endfor %}
             </table>
-            <form action="/admin/limpiar" method="post" style="margin-top:10px;">
-                <button style="width:100%; padding:15px; background:#e67e22; border:none; color:white; font-weight:bold; cursor:pointer;">✅ LIMPIAR TODO</button>
+            <form action="/admin/limpiar" method="post" style="margin-top:15px;">
+                <button style="width:100%; padding:15px; background:#e67e22; border:none; color:white; font-weight:bold; cursor:pointer; border-radius:5px;">✅ MARCAR TODO COMO SURTIDO</button>
             </form>
-        {% else %} <p style="text-align:center; color:#95a5a6;">Nada.</p> {% endif %}
+        {% else %} 
+            <p style="text-align:center; color:#95a5a6;">No hay pedidos acumulados.</p> 
+        {% endif %}
     </div>
 
     <div class="card">
-        <h3>🚦 CONTROL</h3>
+        <h3>🚦 DISPONIBILIDAD EN ROPERÍA CENTRAL</h3>
         {% for row in inventario %}
         <div class="control-row">
             <span>{{ row.item }}</span>
@@ -85,5 +140,92 @@
         </div>
         {% endfor %}
     </div>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">PISO X</div>
+            <div id="menuPrincipal">
+                <form action="/admin/surtir_stock" method="post">
+                    <input type="hidden" name="piso" id="inputPisoQuick">
+                    <button class="btn-action-large btn-quick">⚡ SURTIR TODO A 5 (RÁPIDO)</button>
+                </form>
+                <button onclick="showManual()" class="btn-action-large btn-manual">🖐️ SURTIR ESPECÍFICO</button>
+                <button onclick="closeModal()" class="btn-action-large btn-cancel">CANCELAR</button>
+            </div>
+            <div id="menuManual" class="manual-panel">
+                <div class="grid-items-manual">
+                    {% for row in inventario %}
+                    <button class="btn-item-manual" onclick="openKb('{{ row.item }}')">{{ row.item }}</button>
+                    {% endfor %}
+                </div>
+                <div style="background:white; padding:10px; margin-bottom:10px; border-radius:5px; border: 1px solid #ccc; color: #333;">
+                    <strong>Lista:</strong> <span id="cartDisplay">Vacío</span>
+                </div>
+                <button onclick="enviarManual()" class="btn-action-large btn-quick">✅ CONFIRMAR</button>
+                <button onclick="resetMenu()" class="btn-action-large btn-cancel">🔙 ATRÁS</button>
+                <div class="kb-container" id="kbContainer" style="display:none;">
+                    <div class="kb-display" id="kbScreen">0</div>
+                    <div class="kb-grid">
+                        <button class="btn-num" onclick="kbAdd(1)">1</button><button class="btn-num" onclick="kbAdd(2)">2</button><button class="btn-num" onclick="kbAdd(3)">3</button>
+                        <button class="btn-num" onclick="kbAdd(4)">4</button><button class="btn-num" onclick="kbAdd(5)">5</button><button class="btn-num" onclick="kbAdd(6)">6</button>
+                        <button class="btn-num" onclick="kbAdd(7)">7</button><button class="btn-num" onclick="kbAdd(8)">8</button><button class="btn-num" onclick="kbAdd(9)">9</button>
+                        <button class="btn-num" style="background:#e74c3c; color:white" onclick="kbClear()">C</button>
+                        <button class="btn-num" onclick="kbAdd(0)">0</button>
+                        <button class="btn-num" style="background:#27ae60; color:white" onclick="kbOk()">OK</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let currentPiso = 0, manualCart = [], currentItem = "", kbVal = "", lastId = 0;
+    let audioObj = document.getElementById('alertSound');
+
+    function activarAudio() {
+        audioObj.play().then(() => { audioObj.pause(); alert("Sistema de alertas activado ✅"); }).catch(e => alert("Toca la pantalla para activar el audio."));
+        setInterval(checkForUpdates, 5000);
+    }
+
+    async function checkForUpdates() {
+        try {
+            let res = await fetch(`/check_updates?last_id=${lastId}`);
+            let data = await res.json();
+            if (data.max_id > lastId) {
+                if (lastId !== 0) {
+                    let nuevos = data.updates.filter(u => u.tipo === 'PEDIDO');
+                    if (nuevos.length > 0) {
+                        audioObj.currentTime = 0; audioObj.play();
+                        document.getElementById('alertBanner').style.display = 'block';
+                        document.getElementById('alertBanner').innerText = `🚨 ${nuevos.length} PEDIDO(S) NUEVO(S) - PISO ${nuevos[0].piso}`;
+                        setTimeout(() => location.reload(), 5000);
+                    }
+                }
+                lastId = data.max_id;
+            }
+        } catch(e) {}
+    }
+
+    function stopAlarm() { audioObj.pause(); document.getElementById('alertBanner').style.display = 'none'; location.reload(); }
+    function openModal(piso) { currentPiso = piso; document.getElementById('modalTitle').innerText = "SURTIDO PISO " + piso; document.getElementById('inputPisoQuick').value = piso; resetMenu(); manualCart = []; updateCartDisplay(); document.getElementById('modalOverlay').style.display = 'flex'; }
+    function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+    function showManual() { document.getElementById('menuPrincipal').style.display = 'none'; document.getElementById('menuManual').style.display = 'block'; }
+    function resetMenu() { document.getElementById('menuPrincipal').style.display = 'block'; document.getElementById('menuManual').style.display = 'none'; document.getElementById('kbContainer').style.display = 'none'; }
+    function openKb(item) { currentItem = item; kbVal = ""; document.getElementById('kbScreen').innerText = item; document.getElementById('kbContainer').style.display = 'block'; }
+    function kbAdd(n) { if(kbVal.length < 2) kbVal += n; document.getElementById('kbScreen').innerText = kbVal; }
+    function kbClear() { kbVal = ""; document.getElementById('kbScreen').innerText = "0"; }
+    function kbOk() { if(kbVal && parseInt(kbVal) >= 0) { manualCart = manualCart.filter(i => i.item !== currentItem); manualCart.push({ item: currentItem, cantidad: parseInt(kbVal) }); updateCartDisplay(); document.getElementById('kbContainer').style.display = 'none'; } }
+    function updateCartDisplay() { document.getElementById('cartDisplay').innerText = manualCart.length ? manualCart.map(i => `${i.cantidad} ${i.item}`).join(", ") : "Vacío"; }
+
+    async function enviarManual() {
+        if(!manualCart.length) return alert("Selecciona items");
+        let res = await fetch('/admin/surtir_manual', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ piso: currentPiso, items: manualCart })
+        });
+        if(res.ok) location.reload();
+    }
+</script>
 </body>
 </html>

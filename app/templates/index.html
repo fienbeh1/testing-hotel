@@ -47,9 +47,32 @@
         .kb-panel.show { bottom:0; }
         .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         .btn-num { padding: 15px; font-size: 1.6rem; background: white; border:none; border-radius:5px; box-shadow: 0 2px 0 #ccc; }
+        
+        /* NOTIFICACION BANNER (NUEVO) */
+        #refillBanner {
+            position: fixed; top: 0; left: 0; width: 100%;
+            background: #27ae60; color: white; padding: 25px 15px;
+            text-align: center; display: none; z-index: 9999;
+            font-weight: bold; font-size: 1.3rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            cursor: pointer;
+            border-bottom: 4px solid #1e8449;
+            animation: slideDown 0.5s ease;
+        }
+        @keyframes slideDown { from {top: -100px;} to {top: 0;} }
     </style>
 </head>
 <body>
+
+<audio id="refillSound">
+    <source src="https://actions.google.com/sounds/v1/communication/notification_high_intensity.ogg" type="audio/ogg">
+</audio>
+
+<div id="refillBanner" onclick="this.style.display='none'">
+    ✅ ¡PISO <span id="refillPisoNum"></span> REABASTECIDO!
+    <br><span style="font-size:0.9rem; font-weight:normal;">La ropería ha surtido tu pedido. Toca para cerrar.</span>
+</div>
+
 <div class="header" id="headerTitle">SELECCIONA PISO</div>
 <div class="container">
     <div class="grid-pisos" id="divPisos"></div>
@@ -99,8 +122,9 @@
 </div>
 
 <script>
-    let piso=null, item=null, qty="", carrito=[];
+    let piso=null, item=null, qty="", carrito=[], lastId = 0;
     const divPisos = document.getElementById('divPisos');
+    const audioRefill = document.getElementById('refillSound');
     
     // Crear botones pisos
     for(let i=11; i>=3; i--){
@@ -109,29 +133,45 @@
         divPisos.appendChild(btn);
     }
 
+    // Inicializar Polling de actualizaciones al cargar la página
+    async function initPolling() {
+        try {
+            let res = await fetch('/check_updates?last_id=0');
+            let data = await res.json();
+            lastId = data.max_id;
+            setInterval(checkUpdatesFromServer, 5000); // Revisar cada 5 seg
+        } catch(e) { console.error("Error iniciando polling", e); }
+    }
+    initPolling();
+
     async function loadPiso(n, btn){
         piso = n;
+        // Desbloquear audio para móviles en la primera interacción
+        audioRefill.play().then(()=>audioRefill.pause()).catch(()=>{});
+
         document.querySelectorAll('.btn-piso').forEach(b=>b.classList.remove('active')); btn.classList.add('active');
         document.getElementById('headerTitle').innerText = "PISO " + n;
         document.getElementById('divItems').style.display = 'grid';
         document.getElementById('stockPanel').style.display = 'block';
+        document.getElementById('histSection').style.display = 'block';
         
-        // MOSTRAR SECCIÓN HISTORIAL
-        const histSec = document.getElementById('histSection');
-        histSec.style.display = 'block';
-        
+        refreshPisoData();
+    }
+
+    async function refreshPisoData() {
+        if(!piso) return;
         try {
-            let res = await fetch(`/piso/${n}/datos`);
+            let res = await fetch(`/piso/${piso}/datos`);
             let data = await res.json();
             
-            // Stock
+            // Render Stock
             document.getElementById('lastUpdate').innerText = data.ultima_recarga;
             let sg = document.getElementById('stockGrid'); sg.innerHTML = "";
             data.stock.forEach(s => {
                 sg.innerHTML += `<div class="stock-box"><span class="stock-val">${s.cantidad}</span> ${s.item.split(' ')[0]}</div>`;
             });
 
-            // Historial
+            // Render Historial
             let hl = document.getElementById('histList'); hl.innerHTML = "";
             if(data.historial.length === 0) {
                 hl.innerHTML = '<div style="padding:15px; text-align:center; color:#ccc;">Sin actividad reciente.</div>';
@@ -155,30 +195,81 @@
         } catch(e) { console.error(e); }
     }
 
+    async function checkUpdatesFromServer() {
+        try {
+            let res = await fetch(`/check_updates?last_id=${lastId}`);
+            let data = await res.json();
+            
+            if(data.max_id > lastId) {
+                // Hay cambios en el servidor
+                let updates = data.updates;
+                lastId = data.max_id;
+
+                // Buscar si hay un evento de SURTIDO o LIMPIAR
+                updates.forEach(u => {
+                    if(u.tipo === 'SURTIDO' || u.tipo === 'LIMPIAR') {
+                        // Si el cambio es en mi piso actual, refrescar pantalla
+                        if(u.piso == piso || u.tipo === 'LIMPIAR') {
+                            refreshPisoData();
+                            showNotification(u.piso || piso);
+                        }
+                    }
+                });
+            }
+        } catch(e) {}
+    }
+
+    function showNotification(numPiso) {
+        document.getElementById('refillPisoNum').innerText = numPiso;
+        const banner = document.getElementById('refillBanner');
+        banner.style.display = 'block';
+        
+        audioRefill.currentTime = 0;
+        audioRefill.play().catch(e => console.log("Audio bloqueado"));
+
+        // Ocultar tras 10 segundos
+        setTimeout(() => { banner.style.display = 'none'; }, 10000);
+    }
+
     async function reportarVacio() {
         if(!piso) return;
         if(!confirm("⚠️ ¿ROPERÍA VACÍA?\n\nSe pondrá el inventario en 0.")) return;
         try {
             let res = await fetch('/reportar_vacio', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({piso: piso}) });
-            if(res.ok) { alert("Reporte enviado."); loadPiso(piso, document.querySelector('.btn-piso.active')); }
+            if(res.ok) { alert("Reporte enviado."); refreshPisoData(); }
         } catch(e) { alert("Error"); }
     }
 
+    // Lógica del Teclado
     function openKb(it){ item=it; qty=""; document.getElementById('kbDisplay').innerText="0"; document.getElementById('kbOverlay').style.display='block'; setTimeout(()=>document.getElementById('kbPanel').classList.add('show'),10); }
     function closeKb(){ document.getElementById('kbPanel').classList.remove('show'); setTimeout(()=>document.getElementById('kbOverlay').style.display='none',200); }
     function add(n){ if(qty.length<2) qty+=n; document.getElementById('kbDisplay').innerText=qty; }
     function clean(){ qty=""; document.getElementById('kbDisplay').innerText="0"; }
-    function confirmItem(){ if(parseInt(qty)>0){ carrito.push({item:item, cantidad:parseInt(qty)}); renderCart(); } closeKb(); }
+    
+    function confirmItem(){ 
+        if(parseInt(qty)>0){ 
+            carrito.push({item:item, cantidad:parseInt(qty)}); 
+            renderCart(); 
+        } 
+        closeKb(); 
+    }
+
     function renderCart(){ 
         let lc=document.getElementById('listaCarrito'); lc.innerHTML="";
         if(carrito.length>0) document.getElementById('carritoSection').style.display='block';
         else document.getElementById('carritoSection').style.display='none';
-        carrito.forEach((p,i)=> lc.innerHTML+=`<div class="carrito-row"><span><b>${p.cantidad}</b> ${p.item}</span><button onclick="carrito.splice(${i},1);renderCart()" style="background:#e74c3c;color:white;border:none;border-radius:4px;">X</button></div>`);
+        carrito.forEach((p,i)=> lc.innerHTML+=`<div class="carrito-row"><span><b>${p.cantidad}</b> ${p.item}</span><button onclick="carrito.splice(${i},1);renderCart()" style="background:#e74c3c;color:white;border:none;border-radius:4px;padding:5px 10px;">X</button></div>`);
     }
+
     async function enviar(){
         if(carrito.length===0) return;
         let res = await fetch('/pedir_varios', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({piso:piso, items:carrito})});
-        if(res.ok) { alert("✅ ENVIADO"); carrito=[]; renderCart(); loadPiso(piso, document.querySelector('.btn-piso.active')); }
+        if(res.ok) { 
+            alert("✅ ENVIADO"); 
+            carrito=[]; 
+            renderCart(); 
+            refreshPisoData(); 
+        }
     }
 </script>
 </body>
